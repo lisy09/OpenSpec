@@ -67,7 +67,7 @@ export abstract class SlashCommandConfigurator {
   protected abstract getFrontmatter(id: SlashCommandId): string | undefined;
 
   protected getBody(id: SlashCommandId): string {
-    return TemplateManager.getSlashCommandBody(id).trim();
+    return TemplateManager.getSlashCommandBodyLang(id, TemplateManager.getLanguage()).trim();
   }
 
   // Resolve absolute path for a given slash command target. Subclasses may override

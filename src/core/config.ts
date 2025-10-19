@@ -5,8 +5,11 @@ export const OPENSPEC_MARKERS = {
   end: '<!-- OPENSPEC:END -->'
 };
 
+export type LanguageCode = 'en' | 'zh';
+
 export interface OpenSpecConfig {
   aiTools: string[];
+  language: LanguageCode;
 }
 
 export interface AIToolOption {

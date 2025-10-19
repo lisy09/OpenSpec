@@ -831,6 +831,44 @@ describe('InitCommand', () => {
     });
   });
 
+  describe('language support', () => {
+    it('should generate Chinese AGENTS.md and project.md when language is zh', async () => {
+      const initZh = new InitCommand({ prompt: mockPrompt, language: 'zh' });
+      queueSelections(DONE);
+
+      await initZh.execute(testDir);
+
+      const openspecPath = path.join(testDir, 'openspec');
+      const agentsPath = path.join(openspecPath, 'AGENTS.md');
+      const projectPath = path.join(openspecPath, 'project.md');
+
+      expect(await fileExists(agentsPath)).toBe(true);
+      expect(await fileExists(projectPath)).toBe(true);
+
+      const agentsContent = await fs.readFile(agentsPath, 'utf-8');
+      const projectContent = await fs.readFile(projectPath, 'utf-8');
+
+      expect(agentsContent).toMatch(/OpenSpec 使用说明/);
+      expect(projectContent).toMatch(/项目.*上下文|目标/);
+    });
+
+    it('should generate Chinese slash command content for selected tools (zh)', async () => {
+      const initZh = new InitCommand({ prompt: mockPrompt, language: 'zh' });
+      queueSelections('cursor', DONE);
+
+      await initZh.execute(testDir);
+
+      const cursorProposal = path.join(
+        testDir,
+        '.cursor/commands/openspec-proposal.md'
+      );
+      expect(await fileExists(cursorProposal)).toBe(true);
+      const content = await fs.readFile(cursorProposal, 'utf-8');
+      expect(content).toContain('防护规则');
+      expect(content).toContain('步骤');
+    });
+  });
+
   describe('error handling', () => {
     it('should provide helpful error for insufficient permissions', async () => {
       // This is tricky to test cross-platform, but we can test the error message

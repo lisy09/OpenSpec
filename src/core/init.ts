@@ -21,6 +21,7 @@ import {
   AI_TOOLS,
   OPENSPEC_DIR_NAME,
   AIToolOption,
+  LanguageCode,
 } from './config.js';
 import { PALETTE } from './styles/palette.js';
 
@@ -370,15 +371,18 @@ const toolSelectionWizard = createPrompt<string[], ToolWizardConfig>(
 type InitCommandOptions = {
   prompt?: ToolSelectionPrompt;
   tools?: string;
+  language?: string;
 };
 
 export class InitCommand {
   private readonly prompt: ToolSelectionPrompt;
   private readonly toolsArg?: string;
+  private readonly languageArg?: string;
 
   constructor(options: InitCommandOptions = {}) {
     this.prompt = options.prompt ?? ((config) => toolSelectionWizard(config));
     this.toolsArg = options.tools;
+    this.languageArg = options.language;
   }
 
   async execute(targetPath: string): Promise<void> {
@@ -394,6 +398,9 @@ export class InitCommand {
 
     // Get configuration (after validation to avoid prompts if validation fails)
     const config = await this.getConfiguration(existingToolStates, extendMode);
+
+    // Set language globally for template manager (affects prompts and templates)
+    TemplateManager.setLanguage(config.language);
 
     const availableTools = AI_TOOLS.filter((tool) => tool.available);
     const selectedIds = new Set(config.aiTools);
@@ -474,7 +481,8 @@ export class InitCommand {
     extendMode: boolean
   ): Promise<OpenSpecConfig> {
     const selectedTools = await this.getSelectedTools(existingTools, extendMode);
-    return { aiTools: selectedTools };
+    const language = this.resolveLanguageArg();
+    return { aiTools: selectedTools, language };
   }
 
   private async getSelectedTools(
@@ -680,7 +688,8 @@ export class InitCommand {
       // Could be enhanced with prompts for project details
     };
 
-    const templates = TemplateManager.getTemplates(context);
+    TemplateManager.setLanguage(config.language);
+    const templates = TemplateManager.getTemplates(context, config.language);
 
     for (const template of templates) {
       const filePath = path.join(openspecPath, template.path);
@@ -716,6 +725,16 @@ export class InitCommand {
     }
 
     return rootStubStatus;
+  }
+
+  private resolveLanguageArg(): LanguageCode {
+    const raw = (this.languageArg ?? '').trim().toLowerCase();
+    if (raw === '' || raw === 'en') return 'en';
+    if (raw === 'zh' || raw === 'zh-cn' || raw === 'zh_cn' || raw === 'zh-hans') return 'zh';
+    ora({ stream: process.stdout }).info(
+      PALETTE.midGray(`Unrecognized --language "${this.languageArg}". Falling back to "en".`)
+    );
+    return 'en';
   }
 
   private async configureRootAgentsStub(
